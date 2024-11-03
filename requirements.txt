@@ -1,0 +1,13 @@
+streamlit==1.31.0
+pandas==2.1.4
+sqlite3
+reportlab==4.0.8
+plotly==5.18.0
+schedule==1.2.1
+streamlit-option-menu==0.3.12
+python-dateutil==2.8.2
+pytesseract==0.3.10
+Pillow==10.0.0
+pdfplumber==0.10.2
+openpyxl==3.1.2
+numpy==1.24.3 

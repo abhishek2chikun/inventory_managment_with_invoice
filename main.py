@@ -11,6 +11,11 @@ import base64
 from pages.product_management import product_management
 from pages.invoice_generation import invoice_generation
 from pages.reports import reports
+from pages.bulk_upload import bulk_upload
+
+from backup import after_login_logout
+
+
 
 
 # Initialize SQLite database
@@ -61,26 +66,33 @@ if "logged_in" not in st.session_state:
 def login():
     if st.button("Log in"):
         st.session_state.logged_in = True
+        after_login_logout()
         st.rerun()
 
 def logout():
     if st.button("Log out"):
         st.session_state.logged_in = False
+        after_login_logout()
         st.rerun()
 
 login_page = st.Page(login, title="Log in", icon=":material/login:")
 logout_page = st.Page(logout, title="Log out", icon=":material/logout:")
 
-
 product_management_page = st.Page(product_management, title="Product Management", icon=":material/box:", default=True)
 invoice_generation_page = st.Page(invoice_generation, title="Invoice Generation", icon=":material/receipt:")
 reports_page = st.Page(reports, title="Reports", icon=":material/bar_chart:")
+bulk_upload_page = st.Page(bulk_upload, title="Bulk Upload", icon=":material/upload:")
 
 if st.session_state.logged_in:
     pg = st.navigation(
         {
             "Account": [logout_page],
-            "Inventory": [product_management_page, invoice_generation_page, reports_page],
+            "Inventory": [
+                product_management_page, 
+                invoice_generation_page, 
+                bulk_upload_page,
+                reports_page
+            ],
         }
     )
 else:
