@@ -77,8 +77,8 @@ def generate_pdf(invoice_items, total_amount, gst_rate, igst_rate, final_amount,
             item['item_code'],
             item['quantity'],
             item['box'],
-            f"₹{item['price']:.2f}",
-            f"₹{item['total_amount']:.2f}"
+            f"{item['price']:.2f}",
+            f"{item['total_amount']:.2f}"
         ])
     
     # Adjust column widths to give more space for Item Name
@@ -104,14 +104,14 @@ def generate_pdf(invoice_items, total_amount, gst_rate, igst_rate, final_amount,
 
     # Add summary
     summary_style = ParagraphStyle('summary', fontSize=font_size, alignment=2)  # Right-aligned
-    elements.append(Paragraph(f"Subtotal: ₹{total_amount:.2f}", summary_style))
+    elements.append(Paragraph(f"Subtotal: {total_amount:.2f}", summary_style))
     elements.append(Paragraph(f"GST Rate: {gst_rate:.2f}%", summary_style))
     elements.append(Paragraph(f"IGST Rate: {igst_rate:.2f}%", summary_style))
     elements.append(Paragraph(f"Total Tax Rate: {gst_rate + igst_rate:.2f}%", summary_style))
-    elements.append(Paragraph(f"GST Amount: ₹{total_amount * (gst_rate / 100):.2f}", summary_style))
-    elements.append(Paragraph(f"IGST Amount: ₹{total_amount * (igst_rate / 100):.2f}", summary_style))
-    elements.append(Paragraph(f"Total Tax Amount: ₹{total_amount * ((gst_rate + igst_rate) / 100):.2f}", summary_style))
-    elements.append(Paragraph(f"Final Amount: ₹{final_amount:.2f}", summary_style))
+    elements.append(Paragraph(f"GST Amount: {total_amount * (gst_rate / 100):.2f}", summary_style))
+    elements.append(Paragraph(f"IGST Amount: {total_amount * (igst_rate / 100):.2f}", summary_style))
+    elements.append(Paragraph(f"Total Tax Amount: {total_amount * ((gst_rate + igst_rate) / 100):.2f}", summary_style))
+    elements.append(Paragraph(f"Final Amount: {final_amount:.2f}", summary_style))
 
     doc.build(elements)
     
@@ -134,159 +134,173 @@ def get_next_invoice_number(conn):
     return f"INV-{next_number:04d}"
 
 def invoice_generation():
-    conn = sqlite3.connect('inventory.db')
-    
-    # Fetch all products
-    df_products = pd.read_sql_query("SELECT * FROM products", conn)
-    
-    product_options = df_products.apply(lambda row: f"{row['item_name']} and {row['company']} ({row['category']})", axis=1).tolist()
-    
-    st.subheader("Seller Details")
-    
-    # Create two columns for input
-    col1, col2 = st.columns(2)
+    # Add try-except blocks for database operations
+    try:
+        conn = sqlite3.connect('inventory.db')
+        
+        # Fetch all products
+        df_products = pd.read_sql_query("SELECT * FROM products", conn)
+        
+        product_options = df_products.apply(lambda row: f"{row['item_name']} and {row['company']} ({row['category']})", axis=1).tolist()
+        
+        st.subheader("Seller Details")
+        
+        # Create two columns for input
+        col1, col2 = st.columns(2)
 
-    with col1:
-        seller_name = st.text_input("Seller Name")
-        seller_address = st.text_area("Seller Address")
+        with col1:
+            seller_name = st.text_input("Seller Name")
+            seller_address = st.text_area("Seller Address")
 
-    with col2:
-        seller_phone = st.text_input("Seller Phone", value="NA")
-        seller_gstin = st.text_input("Seller GSTIN", value="NA")
+        with col2:
+            seller_phone = st.text_input("Seller Phone", value="NA")
+            seller_gstin = st.text_input("Seller GSTIN", value="NA")
 
-    # Generate and display the next invoice number
-    next_invoice_number = get_next_invoice_number(conn)
-    st.text_input("Invoice Number", value=next_invoice_number, disabled=True)
+        # Generate and display the next invoice number
+        next_invoice_number = get_next_invoice_number(conn)
+        st.text_input("Invoice Number", value=next_invoice_number, disabled=True)
 
-    # Product selection
-    selected_product = st.selectbox("Select a product", product_options + ["Add new product"])
-    
-    # Initialize session state for invoice items if it doesn't exist
-    if 'invoice_items' not in st.session_state:
-        st.session_state.invoice_items = pd.DataFrame(columns=['display_name', 'item_name', 'item_code', 'quantity', 'box', 'price', 'total_amount'])
-    
-    # Add new product
-    if selected_product == "Add new product":
-        st.subheader("Add New Product")
-        product_added = product_form(conn)
-        if product_added:
-            st.experimental_rerun()
-    
-    # Add selected product to invoice items
-    if st.button("Add to Invoice"):
-        selected_index = product_options.index(selected_product)
-        product_data = df_products.iloc[selected_index]
-        display_name = f"{product_data['company']}_{product_data['item_name']}"
-        new_item = pd.DataFrame({
-            'display_name': [display_name],
-            'item_name': [product_data['item_name']],
-            'item_code': [product_data['item_code']],
-            'quantity': [1],
-            'box': [product_data['unit_per_box']],
-            'price': [product_data['selling_price']],
-            'total_amount': [product_data['selling_price']]
-        })
+        # Product selection
+        selected_product = st.selectbox("Select a product", product_options + ["Add new product"])
         
-        st.session_state.invoice_items = pd.concat([st.session_state.invoice_items, new_item], ignore_index=True)
-    
-    # Display and edit invoice items
-    if not st.session_state.invoice_items.empty:
-        st.subheader("Invoice Items")
-        edited_df = st.data_editor(
-            st.session_state.invoice_items,
-            num_rows="dynamic",
-            column_config={
-                "display_name": st.column_config.TextColumn("Item Name"),
-                "item_code": st.column_config.TextColumn("Item Code"),
-                "quantity": st.column_config.NumberColumn("Quantity", min_value=1, step=1),
-                "box": st.column_config.NumberColumn("Box", min_value=0, step=1),
-                "price": st.column_config.NumberColumn("Price", format="₹%.2f"),
-                "total_amount": st.column_config.NumberColumn("Total Amount", format="₹%.2f")
-            },
-            hide_index=True,
-            key="invoice_items_editor"
-        )
+        # Initialize session state for invoice items if it doesn't exist
+        if 'invoice_items' not in st.session_state:
+            st.session_state.invoice_items = pd.DataFrame(columns=['display_name', 'item_name', 'item_code', 'quantity', 'box', 'price', 'total_amount'])
         
-        # Update total amounts based on quantity, box, and price
-        edited_df['total_amount'] = edited_df.apply(lambda row: 
-            row['price'] * row['quantity'] if row['box'] == 0 or pd.isna(row['box']) 
-            else row['price'] * row['quantity'] * row['box'], axis=1)
-        st.session_state.invoice_items = edited_df
-    
-    # Calculate total amount
-    total_amount = st.session_state.invoice_items['total_amount'].sum()
-    
-    # Tax rate inputs
-    col1, col2 = st.columns(2)
-    with col1:
-        gst_rate = st.number_input("GST Rate (%)", min_value=0.0, max_value=100.0, step=0.1, value=0.0)
-    with col2:
-        igst_rate = st.number_input("IGST Rate (%)", min_value=0.0, max_value=100.0, step=0.1, value=0.0)
-    
-    # Calculate total tax rate and amount
-    total_tax_rate = gst_rate + igst_rate
-    tax_amount = total_amount * (total_tax_rate / 100)
-    
-    # Calculate final amount
-    final_amount = total_amount + tax_amount
-    
-    # Display tax breakdown and final amount
-    st.write(f"GST Amount: ₹{total_amount * (gst_rate / 100):.2f}")
-    st.write(f"IGST Amount: ₹{total_amount * (igst_rate / 100):.2f}")
-    st.write(f"Total Tax Amount: ₹{tax_amount:.2f}")
-    st.write(f"Final Amount: ₹{final_amount:.2f}")
+        # Add new product
+        if selected_product == "Add new product":
+            st.subheader("Add New Product")
+            product_added = product_form(conn)
+            if product_added:
+                st.rerun()
+        
+        # Add selected product to invoice items
+        if st.button("Add to Invoice"):
+            selected_index = product_options.index(selected_product)
+            product_data = df_products.iloc[selected_index]
+            display_name = f"{product_data['company']}_{product_data['item_name']}"
+            new_item = pd.DataFrame({
+                'display_name': [display_name],
+                'item_name': [product_data['item_name']],
+                'item_code': [product_data['item_code']],
+                'quantity': [1],
+                'box': [product_data['unit_per_box']],
+                'price': [product_data['selling_price']],
+                'total_amount': [product_data['selling_price']]
+            })
+            
+            st.session_state.invoice_items = pd.concat([st.session_state.invoice_items, new_item], ignore_index=True)
+        
+        # Display and edit invoice items
+        if not st.session_state.invoice_items.empty:
+            st.subheader("Invoice Items")
+            edited_df = st.data_editor(
+                st.session_state.invoice_items,
+                num_rows="dynamic",
+                column_config={
+                    "display_name": st.column_config.TextColumn("Item Name"),
+                    "item_code": st.column_config.TextColumn("Item Code"),
+                    "quantity": st.column_config.NumberColumn("Quantity", min_value=1, step=1),
+                    "box": st.column_config.NumberColumn("Box", min_value=0, step=1),
+                    "price": st.column_config.NumberColumn("Price", format="%.2f"),
+                    "total_amount": st.column_config.NumberColumn("Total Amount", format="%.2f")
+                },
+                hide_index=True,
+                key="invoice_items_editor"
+            )
+            
+            # Update total amounts based on quantity, box, and price
+            edited_df['total_amount'] = edited_df.apply(lambda row: 
+                row['price'] * row['quantity'] if row['box'] == 0 or pd.isna(row['box']) 
+                else row['price'] * row['quantity'] * row['box'], axis=1)
+            st.session_state.invoice_items = edited_df
+        
+        # Calculate total amount
+        total_amount = st.session_state.invoice_items['total_amount'].sum()
+        
+        # Tax rate inputs
+        col1, col2 = st.columns(2)
+        with col1:
+            gst_rate = st.number_input("GST Rate (%)", min_value=0.0, max_value=100.0, step=0.1, value=0.0)
+        with col2:
+            igst_rate = st.number_input("IGST Rate (%)", min_value=0.0, max_value=100.0, step=0.1, value=0.0)
+        
+        # Calculate total tax rate and amount
+        total_tax_rate = gst_rate + igst_rate
+        tax_amount = total_amount * (total_tax_rate / 100)
+        
+        # Calculate final amount
+        final_amount = total_amount + tax_amount
+        
+        # Display tax breakdown and final amount
+        st.write(f"GST Amount: {total_amount * (gst_rate / 100):.2f}")
+        st.write(f"IGST Amount: {total_amount * (igst_rate / 100):.2f}")
+        st.write(f"Total Tax Amount: {tax_amount:.2f}")
+        st.write(f"Final Amount: {final_amount:.2f}")
 
-    # Seller details dictionary
-    seller_details = {
-        "name": seller_name,
-        "address": seller_address,
-        "phone": seller_phone,
-        "gstin": seller_gstin
-    }
+        # Seller details dictionary
+        seller_details = {
+            "name": seller_name,
+            "address": seller_address,
+            "phone": seller_phone,
+            "gstin": seller_gstin
+        }
 
-    # Preview button
-    if st.button("Preview Invoice"):
-        pdf_invoice_items = st.session_state.invoice_items.copy()
-        pdf_invoice_items['item_name'] = pdf_invoice_items['display_name']
-        pdf_buffer = generate_pdf(pdf_invoice_items, total_amount, gst_rate, igst_rate, final_amount, seller_details, next_invoice_number, preview=True)
-        pdf_base64 = base64.b64encode(pdf_buffer.getvalue()).decode('utf-8')
-        pdf_display = f'<iframe src="data:application/pdf;base64,{pdf_base64}" width="700" height="1000" type="application/pdf"></iframe>'
-        st.markdown(pdf_display, unsafe_allow_html=True)
-    
-    if st.button("Generate Invoice"):
-        pdf_invoice_items = st.session_state.invoice_items.copy()
-        pdf_invoice_items['item_name'] = pdf_invoice_items['display_name']
+        # Preview button
+        if st.button("Preview Invoice"):
+            pdf_invoice_items = st.session_state.invoice_items.copy()
+            pdf_invoice_items['item_name'] = pdf_invoice_items['display_name']
+            pdf_buffer = generate_pdf(pdf_invoice_items, total_amount, gst_rate, igst_rate, final_amount, seller_details, next_invoice_number, preview=True)
+            pdf_base64 = base64.b64encode(pdf_buffer.getvalue()).decode('utf-8')
+            pdf_display = f'<iframe src="data:application/pdf;base64,{pdf_base64}" width="700" height="1000" type="application/pdf"></iframe>'
+            st.markdown(pdf_display, unsafe_allow_html=True)
         
-        # Generate PDF
-        pdf_bytes = generate_pdf(pdf_invoice_items, total_amount, gst_rate, igst_rate, final_amount, seller_details, next_invoice_number)
+        if st.button("Generate Invoice"):
+            pdf_invoice_items = st.session_state.invoice_items.copy()
+            pdf_invoice_items['item_name'] = pdf_invoice_items['display_name']
+            
+            # Generate PDF
+            pdf_bytes = generate_pdf(pdf_invoice_items, total_amount, gst_rate, igst_rate, final_amount, seller_details, next_invoice_number)
+            
+            # Save PDF locally
+            if not os.path.exists('invoices'):
+                os.makedirs('invoices')
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            pdf_filename = f"invoice_{next_invoice_number}_{timestamp}.pdf"
+            pdf_path = os.path.join('invoices', pdf_filename)
+            with open(pdf_path, 'wb') as f:
+                f.write(pdf_bytes)
+            
+            # Store invoice in database
+            invoice_data = st.session_state.invoice_items[['item_name', 'item_code', 'quantity', 'box', 'price', 'total_amount']].to_dict('records')
+            with conn:
+                conn.execute("""
+                    INSERT INTO invoices (invoice_data, total_amount, date, pdf_path, customer_name, customer_address, customer_phone, invoice_number)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (str(invoice_data), final_amount, str(pd.Timestamp.now()), pdf_path, seller_name, seller_address, seller_phone, next_invoice_number))
+            
+            # Display success message and provide download link
+            st.success(f"Invoice {next_invoice_number} generated and stored in database! PDF saved as {pdf_filename}")
+            
+            # Create a download button for the PDF
+            st.download_button(
+                label="Download Invoice PDF",
+                data=pdf_bytes,
+                file_name=pdf_filename,
+                mime="application/pdf"
+            )
         
-        # Save PDF locally
-        if not os.path.exists('invoices'):
-            os.makedirs('invoices')
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        pdf_filename = f"invoice_{next_invoice_number}_{timestamp}.pdf"
-        pdf_path = os.path.join('invoices', pdf_filename)
-        with open(pdf_path, 'wb') as f:
-            f.write(pdf_bytes)
-        
-        # Store invoice in database
-        invoice_data = st.session_state.invoice_items[['item_name', 'item_code', 'quantity', 'box', 'price', 'total_amount']].to_dict('records')
-        with conn:
-            conn.execute("""
-                INSERT INTO invoices (invoice_data, total_amount, date, pdf_path, customer_name, customer_address, customer_phone, invoice_number)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (str(invoice_data), final_amount, str(pd.Timestamp.now()), pdf_path, seller_name, seller_address, seller_phone, next_invoice_number))
-        
-        # Display success message and provide download link
-        st.success(f"Invoice {next_invoice_number} generated and stored in database! PDF saved as {pdf_filename}")
-        
-        # Create a download button for the PDF
-        st.download_button(
-            label="Download Invoice PDF",
-            data=pdf_bytes,
-            file_name=pdf_filename,
-            mime="application/pdf"
-        )
-    
-    # Close the database connection
-    conn.close()
+        # Validate seller details
+        if not seller_name or not seller_address:
+            st.error("Seller name and address are required")
+            return
+
+        # Validate invoice items
+        if st.session_state.invoice_items.empty:
+            st.error("Please add at least one item to the invoice")
+            return
+    except sqlite3.Error as e:
+        st.error(f"Database error: {e}")
+        return
+    finally:
+        conn.close()
