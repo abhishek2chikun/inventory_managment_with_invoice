@@ -8,15 +8,11 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 import io
 import base64
-from pages.product_management import product_management
+from pages.add_items import add_items
+from pages.manage_items import manage_items
 from pages.invoice_generation import invoice_generation
 from pages.reports import reports
-from pages.bulk_upload import bulk_upload
-
 from backup import after_login_logout
-
-
-
 
 # Initialize SQLite database
 conn = sqlite3.connect('inventory.db')
@@ -26,7 +22,7 @@ c = conn.cursor()
 c.execute('''CREATE TABLE IF NOT EXISTS products
              (id INTEGER PRIMARY KEY, company TEXT, category TEXT, item_name TEXT, 
              item_code TEXT, buying_price REAL, selling_price REAL, 
-             unit_per_box INTEGER, quantity INTEGER, date_purchased TEXT,
+             quantity INTEGER, date_purchased TEXT,
              gst_percentage REAL,
              UNIQUE(company, category, item_name))''')
 
@@ -49,7 +45,7 @@ else:
     c.execute("PRAGMA table_info(invoices)")
     columns = [column[1] for column in c.fetchall()]
     required_columns = ['invoice_data', 'total_amount', 'date', 'pdf_path', 
-                        'customer_name', 'customer_address', 'customer_phone', 'invoice_number']
+                       'customer_name', 'customer_address', 'customer_phone', 'invoice_number']
     
     for column in required_columns:
         if column not in columns:
@@ -75,27 +71,34 @@ def logout():
         after_login_logout()
         st.rerun()
 
-login_page = st.Page(login, title="Log in", icon=":material/login:")
-logout_page = st.Page(logout, title="Log out", icon=":material/logout:")
+def main():
+    if not st.session_state.logged_in:
+        st.title("Login")
+        login()
+        return
 
-product_management_page = st.Page(product_management, title="Product Management", icon=":material/box:", default=True)
-invoice_generation_page = st.Page(invoice_generation, title="Invoice Generation", icon=":material/receipt:")
-reports_page = st.Page(reports, title="Reports", icon=":material/bar_chart:")
-bulk_upload_page = st.Page(bulk_upload, title="Bulk Upload", icon=":material/upload:")
+    # Create a sidebar menu
+    with st.sidebar:
+        st.title("Navigation")
+        selected = option_menu(
+            menu_title=None,
+            options=["Add Items", "Manage Items", "Invoice Generation", "Reports", "Logout"],
+            icons=["plus-circle", "pencil-square", "receipt", "bar-chart", "box-arrow-right"],
+            menu_icon="cast",
+            default_index=0,
+        )
+        
+    # Load the appropriate page based on selection
+    if selected == "Add Items":
+        add_items()
+    elif selected == "Manage Items":
+        manage_items()
+    elif selected == "Invoice Generation":
+        invoice_generation()
+    elif selected == "Reports":
+        reports()
+    elif selected == "Logout":
+        logout()
 
-if st.session_state.logged_in:
-    pg = st.navigation(
-        {
-            "Account": [logout_page],
-            "Inventory": [
-                product_management_page, 
-                invoice_generation_page, 
-                bulk_upload_page,
-                reports_page
-            ],
-        }
-    )
-else:
-    pg = st.navigation([login_page])
-
-pg.run()
+if __name__ == "__main__":
+    main()

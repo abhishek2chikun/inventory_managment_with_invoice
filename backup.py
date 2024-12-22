@@ -37,7 +37,7 @@ def backup_database():
         print(f"Database backup created successfully: {dst_db}")
         
         # Add rotation of old backups
-        MAX_BACKUPS = 30  # Keep last 30 backups
+        MAX_BACKUPS = 10  # Keep last 30 backups
         
         # Remove old backups
         backup_files = sorted(os.listdir('backups'))
