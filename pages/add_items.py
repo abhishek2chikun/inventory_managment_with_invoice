@@ -179,7 +179,9 @@ def add_items():
                      quantity INTEGER,
                      date_purchased TEXT,
                      gst_percentage REAL,
-                     UNIQUE(company, category, item_name))''')
+                     UNIQUE(company, category, item_name),
+                     UNIQUE(item_code)
+                     )''')
         
         # Tab selection
         tab1, tab2 = st.tabs(["Single Item Upload", "Bulk Upload"])
