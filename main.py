@@ -26,6 +26,26 @@ c.execute('''CREATE TABLE IF NOT EXISTS products
              gst_percentage REAL,
              UNIQUE(company, category, item_name))''')
 
+c.execute('''CREATE TABLE IF NOT EXISTS sellers
+             (id INTEGER PRIMARY KEY,
+              name TEXT NOT NULL,
+              address TEXT,
+              phone TEXT,
+              gstin TEXT,
+              total_credit REAL DEFAULT 0,
+              UNIQUE(name, phone))''')
+
+c.execute('''CREATE TABLE IF NOT EXISTS seller_transactions
+             (id INTEGER PRIMARY KEY,
+              seller_id INTEGER,
+              invoice_id INTEGER,
+              amount REAL,
+              transaction_type TEXT,
+              date TEXT,
+              notes TEXT,
+              FOREIGN KEY(seller_id) REFERENCES sellers(id),
+              FOREIGN KEY(invoice_id) REFERENCES invoices(id))''')
+
 # Check if the invoices table exists
 c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='invoices'")
 if c.fetchone() is None:
@@ -36,16 +56,16 @@ if c.fetchone() is None:
                   total_amount REAL,
                   date TEXT,
                   pdf_path TEXT,
-                  customer_name TEXT,
-                  customer_address TEXT,
-                  customer_phone TEXT,
-                  invoice_number TEXT)''')
+                  seller_id INTEGER,
+                  payment_status TEXT DEFAULT 'paid',
+                  invoice_number TEXT,
+                  FOREIGN KEY(seller_id) REFERENCES sellers(id))''')
 else:
     # If the table exists, check if all columns are present
     c.execute("PRAGMA table_info(invoices)")
     columns = [column[1] for column in c.fetchall()]
     required_columns = ['invoice_data', 'total_amount', 'date', 'pdf_path', 
-                       'customer_name', 'customer_address', 'customer_phone', 'invoice_number']
+                       'seller_id', 'payment_status', 'invoice_number']
     
     for column in required_columns:
         if column not in columns:
