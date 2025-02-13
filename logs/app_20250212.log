@@ -1,0 +1,20 @@
+2025-02-12 23:54:16,845 - utils.logger - INFO - Searching for invoice: INV-0001
+2025-02-12 23:58:51,956 - utils.logger - INFO - Searching for invoice: INV0003
+2025-02-12 23:58:58,984 - utils.logger - INFO - Searching for invoice: 0003
+2025-02-12 23:58:58,985 - utils.logger - INFO - Available invoices: ['INV-0001', 'INV0002', 'INV0003']
+2025-02-12 23:59:02,533 - utils.logger - INFO - Searching for invoice: INV0003
+2025-02-13 00:05:19,769 - utils.logger - INFO - Searching for invoice: INV0003 
+2025-02-13 00:05:19,771 - utils.logger - INFO - Available invoices: ['INV-0001', 'INV0002', 'INV0003']
+2025-02-13 00:05:21,167 - utils.logger - INFO - Searching for invoice: INV0003
+2025-02-13 00:05:24,044 - utils.logger - INFO - Searching for invoice: INV000
+2025-02-13 00:05:24,045 - utils.logger - INFO - Available invoices: ['INV-0001', 'INV0002', 'INV0003']
+2025-02-13 00:05:24,909 - utils.logger - INFO - Searching for invoice: INV0003
+2025-02-13 00:05:37,721 - utils.logger - INFO - Searching for invoice: INV-0001
+2025-02-13 00:05:41,327 - utils.logger - INFO - Searching for invoice: INV-0001
+2025-02-13 00:05:43,163 - utils.logger - INFO - Searching for invoice: INV-0001
+2025-02-13 00:05:47,211 - utils.logger - INFO - Searching for invoice: INV-0001
+2025-02-13 00:09:26,956 - utils.logger - INFO - Searching for invoice: INV-0001
+2025-02-13 00:09:29,231 - utils.logger - INFO - Searching for invoice: INV0001
+2025-02-13 00:14:43,150 - utils.logger - INFO - Searching for invoice: INV0005
+2025-02-13 00:14:49,053 - utils.logger - INFO - Searching for invoice: INV0005
+2025-02-13 00:15:55,377 - utils.logger - INFO - Searching for invoice: INV0005
